@@ -1,2 +1,2 @@
 # raytracer
-My second try at coding a ray tracer. This time in C++.
+Trying to code a ray tracer as a hands-on way to learn C++.
