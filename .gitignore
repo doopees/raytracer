@@ -1,0 +1,10 @@
+# Binary files
+*.exe
+*.o
+*.obj
+
+# Ppm image files
+*.ppm
+
+# Local VS Code settings
+.vscode/
