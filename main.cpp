@@ -46,7 +46,7 @@ int main()
         return (h < 1) ? 1 : h;
     }();
 
-    constexpr std::string_view filename = "image.ppm";
+    constexpr std::string_view filename = "output.ppm";
 
     // --- Camera & Viewport Setup ---
     auto focal_length = 1.0;
@@ -107,6 +107,8 @@ int main()
 
     std::println(stderr, "\rDone.                       ");
     std::println(stderr, "Total render time: {:.2f}ms", duration.count());
+
+    std::system("ffmpeg -y -i output.ppm output.png > nul 2>&1");
 
     return 0;
 }

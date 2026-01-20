@@ -5,7 +5,7 @@ A high-performance raytracer following the *Ray Tracing in One Weekend* series, 
 ## Current Status: Chapter 5 (Surface Normals)
 The engine can now intersect spheres and calculate surface normals to provide 3D shading.
 
-![Latest Render](image.png)
+![Latest Render](output.png)
 
 ## Modern Improvements
 While following the textbook, this implementation introduces several "2026-era" C++ optimizations:
