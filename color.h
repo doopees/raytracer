@@ -1,7 +1,6 @@
 #pragma once
 
 #include "vec3.h"
-#include <algorithm>
 #include <cstdint>
 
 using color = vec3;
