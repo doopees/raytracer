@@ -7,7 +7,7 @@ class sphere : public hittable
 {
 public:
     constexpr sphere(const point3 &center, double radius, std::shared_ptr<material> mat)
-        : center(center), radius(std::fmax(0, radius)), mat(mat) {}
+        : center(center), radius(std::max(0.0, radius)), mat(mat) {}
 
     [[nodiscard]] bool hit(const ray &r, interval ray_t, hit_record &rec) const override
     {
