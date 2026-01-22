@@ -8,14 +8,14 @@ struct vec3
     constexpr vec3(double x, double y, double z) : x{x}, y{y}, z{z} {}
 
     // Negation
-    [[nodiscard]] constexpr vec3 operator-() const { return {-x, -y, -z}; }
+    [[nodiscard]] constexpr vec3 operator-() const noexcept { return {-x, -y, -z}; }
 
     // Subscript access
-    [[nodiscard]] constexpr double operator[](int i) const { return (&x)[i]; }
-    [[nodiscard]] double &operator[](int i) { return (&x)[i]; }
+    [[nodiscard]] constexpr double operator[](int i) const noexcept { return (&x)[i]; }
+    [[nodiscard]] double &operator[](int i) noexcept { return (&x)[i]; }
 
     // Compound assignments
-    constexpr vec3 &operator+=(const vec3 &v)
+    constexpr vec3 &operator+=(const vec3 &v) noexcept
     {
         x += v.x;
         y += v.y;
@@ -23,7 +23,7 @@ struct vec3
         return *this;
     }
 
-    constexpr vec3 &operator*=(double t)
+    constexpr vec3 &operator*=(double t) noexcept
     {
         x *= t;
         y *= t;
@@ -31,14 +31,14 @@ struct vec3
         return *this;
     }
 
-    constexpr vec3 &operator/=(double t) { return *this *= (1.0 / t); }
+    constexpr vec3 &operator/=(double t) noexcept { return *this *= (1.0 / t); }
 
     // Length methods
-    [[nodiscard]] constexpr double length() const
+    [[nodiscard]] constexpr double length() const noexcept
     {
         return std::sqrt(length_squared());
     }
-    [[nodiscard]] constexpr double length_squared() const
+    [[nodiscard]] constexpr double length_squared() const noexcept
     {
         return x * x + y * y + z * z;
     }
@@ -68,52 +68,65 @@ using color = vec3;  // RGB color
 
 // Utility Functions
 
-[[nodiscard]] constexpr vec3 operator+(const vec3 &u, const vec3 &v)
+[[nodiscard]] constexpr vec3 operator+(const vec3 &u, const vec3 &v) noexcept
 {
     return {u.x + v.x, u.y + v.y, u.z + v.z};
 }
 
-[[nodiscard]] constexpr vec3 operator-(const vec3 &u, const vec3 &v)
+[[nodiscard]] constexpr vec3 operator-(const vec3 &u, const vec3 &v) noexcept
 {
     return {u.x - v.x, u.y - v.y, u.z - v.z};
 }
 
-[[nodiscard]] constexpr vec3 operator*(const vec3 &u, const vec3 &v)
+[[nodiscard]] constexpr vec3 operator*(const vec3 &u, const vec3 &v) noexcept
 {
     return {u.x * v.x, u.y * v.y, u.z * v.z};
 }
 
-[[nodiscard]] constexpr vec3 operator*(double t, const vec3 &v)
+[[nodiscard]] constexpr vec3 operator*(double t, const vec3 &v) noexcept
 {
     return {t * v.x, t * v.y, t * v.z};
 }
 
-[[nodiscard]] constexpr vec3 operator*(const vec3 &v, double t)
+[[nodiscard]] constexpr vec3 operator*(const vec3 &v, double t) noexcept
 {
     return t * v;
 }
 
-[[nodiscard]] constexpr vec3 operator/(const vec3 &v, double t)
+[[nodiscard]] constexpr vec3 operator/(const vec3 &v, double t) noexcept
 {
     return (1.0 / t) * v;
 }
 
-[[nodiscard]] constexpr double dot(const vec3 &u, const vec3 &v)
+[[nodiscard]] constexpr double dot(const vec3 &u, const vec3 &v) noexcept
 {
     return u.x * v.x + u.y * v.y + u.z * v.z;
 }
 
-[[nodiscard]] constexpr vec3 cross(const vec3 &u, const vec3 &v)
+[[nodiscard]] constexpr vec3 cross(const vec3 &u, const vec3 &v) noexcept
 {
     return {u.y * v.z - u.z * v.y, u.z * v.x - u.x * v.z, u.x * v.y - u.y * v.x};
 }
 
-[[nodiscard]] constexpr vec3 unit_vector(const vec3 &v)
+[[nodiscard]] constexpr vec3 unit_vector(const vec3 &v) noexcept
 {
     return v / v.length();
 }
 
-[[nodiscard]] inline vec3 random_unit_vector()
+[[nodiscard]] inline vec3 random_in_unit_disk() noexcept
+{
+    while (true)
+    {
+        // Create a random point in the [-1,1] square on the XY plane
+        vec3 p{random_double(-1.0, 1.0), random_double(-1.0, 1.0), 0.0};
+        if (p.length_squared() < 1.0)
+        {
+            return p;
+        }
+    }
+}
+
+[[nodiscard]] inline vec3 random_unit_vector() noexcept
 {
     while (true)
     {
@@ -126,7 +139,7 @@ using color = vec3;  // RGB color
     }
 }
 
-[[nodiscard]] inline vec3 random_on_hemisphere(const vec3 &normal)
+[[nodiscard]] inline vec3 random_on_hemisphere(const vec3 &normal) noexcept
 {
     vec3 on_unit_sphere = random_unit_vector();
     if (dot(on_unit_sphere, normal) > 0.0) // In the same hemisphere as the normal
