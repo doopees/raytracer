@@ -1,9 +1,5 @@
 #pragma once
 
-#include <cmath>
-#include <format>
-#include <print>
-
 struct vec3
 {
     double x{0}, y{0}, z{0};
@@ -46,13 +42,31 @@ struct vec3
     {
         return x * x + y * y + z * z;
     }
+
+    // Near-zero check
+    [[nodiscard]] constexpr bool near_zero() const noexcept
+    {
+        static constexpr double s = 1e-8;
+        return (std::abs(x) < s) && (std::abs(y) < s) && (std::abs(z) < s);
+    }
+
+    // Random vector generation
+    [[nodiscard]] static vec3 random()
+    {
+        return {random_double(), random_double(), random_double()};
+    }
+
+    [[nodiscard]] static vec3 random(double min, double max)
+    {
+        return {random_double(min, max), random_double(min, max), random_double(min, max)};
+    }
 };
 
 // Type aliases for vec3
 using point3 = vec3; // 3D point
 using color = vec3;  // RGB color
 
-// -- vec3 Utility Functions --
+// Utility Functions
 
 [[nodiscard]] constexpr vec3 operator+(const vec3 &u, const vec3 &v)
 {
@@ -99,13 +113,29 @@ using color = vec3;  // RGB color
     return v / v.length();
 }
 
-// --- C++20/23/26 Formatter ---
-// This enables std::print and std::format to work with vec3
-template <>
-struct std::formatter<vec3> : std::formatter<string_view>
+[[nodiscard]] inline vec3 random_unit_vector()
 {
-    auto format(const vec3 &v, format_context &ctx) const
+    while (true)
     {
-        return format_to(ctx.out(), "({:.3f}, {:.3f}, {:.3f})", v.x, v.y, v.z);
+        auto p = vec3::random(-1, 1);
+        auto lensq = p.length_squared();
+        // 1e-160 is a tiny number to avoid division by zero for points
+        // extremely close to the origin.
+        if (1e-160 < lensq && lensq <= 1)
+            return p / std::sqrt(lensq);
     }
-};
+}
+
+[[nodiscard]] inline vec3 random_on_hemisphere(const vec3 &normal)
+{
+    vec3 on_unit_sphere = random_unit_vector();
+    if (dot(on_unit_sphere, normal) > 0.0) // In the same hemisphere as the normal
+        return on_unit_sphere;
+    else
+        return -on_unit_sphere;
+}
+
+[[nodiscard]] constexpr vec3 reflect(const vec3 &v, const vec3 &n) noexcept
+{
+    return v - 2 * dot(v, n) * n;
+}

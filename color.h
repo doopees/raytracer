@@ -11,6 +11,16 @@ struct Pixel
     std::uint8_t r, g, b;
 };
 
+// Helper to transform linear light to gamma-space (Gamma 2.0)
+[[nodiscard]] constexpr double linear_to_gamma(double linear_component) noexcept
+{
+    if (linear_component > 0.0)
+    {
+        return std::sqrt(linear_component);
+    }
+    return 0.0;
+}
+
 // Convert a color to a Pixel by clamping and scaling
 [[nodiscard]] constexpr Pixel to_pixel(const color &pixel_color) noexcept
 {
@@ -20,7 +30,7 @@ struct Pixel
     // Multiplying [0, 0.999] by 256 gives a max of 255.744,
     // which correctly truncates to the integer 255.
     return Pixel{
-        .r = static_cast<std::uint8_t>(256 * intensity.clamp(pixel_color.x)),
-        .g = static_cast<std::uint8_t>(256 * intensity.clamp(pixel_color.y)),
-        .b = static_cast<std::uint8_t>(256 * intensity.clamp(pixel_color.z))};
+        .r = static_cast<std::uint8_t>(256 * intensity.clamp(linear_to_gamma(pixel_color.x))),
+        .g = static_cast<std::uint8_t>(256 * intensity.clamp(linear_to_gamma(pixel_color.y))),
+        .b = static_cast<std::uint8_t>(256 * intensity.clamp(linear_to_gamma(pixel_color.z)))};
 }

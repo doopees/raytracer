@@ -2,16 +2,19 @@
 
 #include "common.h"
 #include "hittable.h"
+#include "material.h"
 
 #include <vector>
 #include <fstream>
+#include <print>
 
 class camera
 {
 public:
-    double aspect_ratio = 1.0;
-    int image_width = 100;
-    int samples_per_pixel = 10;
+    double aspect_ratio = 1.0;  // Ratio of image width over height
+    int image_width = 100;      // Rendered image width in pixel count
+    int samples_per_pixel = 10; // Count of random samples for each pixel
+    int max_depth = 10;         // Maximum number of ray bounces into scene
 
     void render(const hittable &world, std::string_view filename = "output.ppm")
     {
@@ -28,20 +31,13 @@ public:
 
             for (int i = 0; i < image_width; ++i)
             {
-                // auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
-                // auto ray_direction = pixel_center - center;
-                // ray r(center, ray_direction);
-
-                // color pixel_color = ray_color(r, world);
-                // pixels.push_back(to_pixel(pixel_color));
-
                 color pixel_color(0, 0, 0);
 
                 // Multi-sample loop for antialiasing
                 for (int sample = 0; sample < samples_per_pixel; ++sample)
                 {
                     ray r = get_ray(i, j);
-                    pixel_color += ray_color(r, world);
+                    pixel_color += ray_color(r, max_depth, world);
                 }
 
                 // Scale the summed color and convert to 8-bit Pixel
@@ -107,11 +103,21 @@ private:
         return {random_double() - 0.5, random_double() - 0.5, 0};
     }
 
-    [[nodiscard]] constexpr color ray_color(const ray &r, const hittable &world) const
+    [[nodiscard]] constexpr color ray_color(const ray &r, int depth, const hittable &world) const
     {
+        // If we've exceeded the ray bounce limit, no more light is gathered.
+        if (depth <= 0)
+            return color(0.0, 0.0, 0.0);
+
         hit_record rec;
         if (world.hit(r, interval(0.001, infinity), rec))
-            return 0.5 * (rec.normal + color(1.0, 1.0, 1.0));
+        {
+            ray scattered;
+            color attenuation;
+            if (rec.mat->scatter(r, rec, attenuation, scattered))
+                return attenuation * ray_color(scattered, depth - 1, world);
+            return color(0.0, 0.0, 0.0);
+        }
 
         // Background gradient (Sky)
         vec3 unit_direction = unit_vector(r.direction());
