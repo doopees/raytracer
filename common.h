@@ -19,8 +19,8 @@ inline constexpr double pi = std::numbers::pi;
 // Returns a random real in [0,1)
 [[nodiscard]] inline double random_double()
 {
-    // static ensures we only initialize the generator once, not every call
-    static std::mt19937 generator{std::random_device{}()};
+    // thread_local ensures each thread has its own unique generator instance
+    static thread_local std::mt19937 generator{std::random_device{}()};
     static std::uniform_real_distribution<double> distribution(0.0, 1.0);
     return distribution(generator);
 }

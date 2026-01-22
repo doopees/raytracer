@@ -5,6 +5,8 @@
 #include "material.h"
 
 #include <vector>
+#include <execution>
+#include <algorithm>
 #include <fstream>
 #include <print>
 
@@ -28,30 +30,31 @@ public:
     {
         initialize();
 
-        std::vector<Pixel> pixels;
-        pixels.reserve(image_width * image_height);
+        // Prepare the Image Buffer (Flattened 2D array)
+        std::vector<Pixel> pixels(image_width * image_height);
 
-        for (int j = 0; j < image_height; ++j)
-        {
-            // Only update progress every 10 lines
-            if (j % 10 == 0)
-                std::print(stderr, "\rScanlines remaining: {:3} ", image_height - j);
+        // Prepare row indices for the parallel loop
+        std::vector<int> rows(image_height);
+        std::iota(rows.begin(), rows.end(), 0);
 
-            for (int i = 0; i < image_width; ++i)
+        // Parallel execution across scanlines
+        std::for_each(
+            std::execution::par, rows.begin(), rows.end(),
+            [this, &world, &pixels](int j)
             {
-                color pixel_color(0, 0, 0);
-
-                // Multi-sample loop for antialiasing
-                for (int sample = 0; sample < samples_per_pixel; ++sample)
+                for (int i = 0; i < image_width; ++i)
                 {
-                    ray r = get_ray(i, j);
-                    pixel_color += ray_color(r, max_depth, world);
-                }
+                    color pixel_color(0.0, 0.0, 0.0);
+                    for (int s = 0; s < samples_per_pixel; ++s)
+                    {
+                        ray r = get_ray(i, j);
+                        pixel_color += ray_color(r, max_depth, world);
+                    }
 
-                // Scale the summed color and convert to 8-bit Pixel
-                pixels.push_back(to_pixel(pixel_color * pixel_samples_scale));
-            }
-        }
+                    int index = j * image_width + i;
+                    pixels[index] = to_pixel(pixel_color * pixel_samples_scale);
+                }
+            });
 
         save_binary_p6(filename, pixels);
         std::println(stderr, "\rDone.                       ");
