@@ -19,11 +19,17 @@ public:
         add(std::move(object));
     }
 
-    void clear() { objects.clear(); }
+    void clear()
+    {
+        objects.clear();
+        bbox = aabb::empty;
+    }
 
     // Use std::move because unique_ptr cannot be copied
     void add(std::unique_ptr<hittable> object)
     {
+        // Update the bounding box to include the new object before moving it
+        bbox = aabb(bbox, object->bounding_box());
         objects.push_back(std::move(object));
     }
 
@@ -50,4 +56,9 @@ public:
 
         return hit_anything;
     }
+
+    [[nodiscard]] aabb bounding_box() const override { return bbox; }
+
+private:
+    aabb bbox;
 };

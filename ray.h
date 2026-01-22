@@ -2,6 +2,8 @@
 
 #include "vec3.h"
 
+using real = float;
+
 class ray
 {
 public:
@@ -14,7 +16,7 @@ public:
     [[nodiscard]] constexpr vec3 direction() const { return dir; }
 
     // Compute point along ray at parameter t
-    [[nodiscard]] constexpr point3 at(double t) const { return orig + t * dir; }
+    [[nodiscard]] constexpr point3 at(real t) const { return orig + t * dir; }
 
 private:
     point3 orig;

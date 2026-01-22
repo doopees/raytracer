@@ -5,30 +5,31 @@
 class interval
 {
 public:
-    double min, max;
+    real min, max;
 
-    // Default interval is empty
+    // Constructors
     constexpr interval() : min(+infinity), max(-infinity) {}
+    constexpr interval(real min, real max) : min(min), max(max) {}
+    constexpr interval(const interval &a, const interval &b)
+        : min(std::min(a.min, b.min)), max(std::max(a.max, b.max)) {}
 
-    constexpr interval(double min, double max) : min(min), max(max) {}
-
-    [[nodiscard]] constexpr double size() const noexcept
+    [[nodiscard]] constexpr real size() const noexcept
     {
         return max - min;
     }
 
-    [[nodiscard]] constexpr bool contains(double x) const noexcept
+    [[nodiscard]] constexpr bool contains(real x) const noexcept
     {
         return min <= x && x <= max;
     }
 
-    [[nodiscard]] constexpr bool surrounds(double x) const noexcept
+    [[nodiscard]] constexpr bool surrounds(real x) const noexcept
     {
         return min < x && x < max;
     }
 
     // Clamp utility: stays within [min, max]
-    [[nodiscard]] constexpr double clamp(double x) const noexcept
+    [[nodiscard]] constexpr real clamp(real x) const noexcept
     {
         if (x < min)
             return min;

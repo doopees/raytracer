@@ -2,12 +2,18 @@
 
 #include "common.h"
 #include "hittable.h"
+#include "aabb.h"
 
 class sphere : public hittable
 {
 public:
-    constexpr sphere(const point3 &center, double radius, std::shared_ptr<material> mat)
-        : center(center), radius(std::max(0.0, radius)), mat(mat) {}
+    constexpr sphere(const point3 &center, real radius, std::shared_ptr<material> mat)
+        : center(center), radius(std::max(0.0f, radius)), mat(mat)
+    {
+        // The bounding box goes from (center - radius) to (center + radius)
+        auto r_vec = vec3(radius, radius, radius);
+        bbox = aabb(center - r_vec, center + r_vec);
+    }
 
     [[nodiscard]] bool hit(const ray &r, interval ray_t, hit_record &rec) const override
     {
@@ -18,7 +24,7 @@ public:
         auto c = oc.length_squared() - radius * radius;
 
         auto discriminant = h * h - a * c;
-        if (discriminant < 0)
+        if (discriminant < 0.0f)
             return false;
 
         auto sqrtd = std::sqrt(discriminant);
@@ -41,8 +47,11 @@ public:
         return true;
     }
 
+    [[nodiscard]] aabb bounding_box() const override { return bbox; }
+
 private:
     point3 center;
-    double radius;
+    real radius;
     std::shared_ptr<material> mat;
+    aabb bbox;
 };

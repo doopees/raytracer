@@ -1,10 +1,10 @@
 #include "common.h"
-
 #include "camera.h"
 #include "hittable.h"
 #include "hittable_list.h"
 #include "material.h"
 #include "sphere.h"
+#include "bvh_node.h"
 
 #include <chrono>
 
@@ -13,17 +13,6 @@ int main()
     // World
     hittable_list world;
 
-    // auto material_ground = std::make_shared<lambertian>(color(0.8, 0.8, 0.0));
-    // auto material_center = std::make_shared<lambertian>(color(0.1, 0.2, 0.5));
-    // auto material_left = std::make_shared<dielectric>(1.50);
-    // auto material_bubble = std::make_shared<dielectric>(1.00 / 1.50);
-    // auto material_right = std::make_shared<metal>(color(0.8, 0.6, 0.2), 1.0);
-    // world.add(std::make_unique<sphere>(point3(0.0, -100.5, -1.0), 100.0, material_ground));
-    // world.add(std::make_unique<sphere>(point3(0.0, 0.0, -1.2), 0.5, material_center));
-    // world.add(std::make_unique<sphere>(point3(-1.0, 0.0, -1.0), 0.5, material_left));
-    // world.add(std::make_unique<sphere>(point3(-1.0, 0.0, -1.0), 0.4, material_bubble));
-    // world.add(std::make_unique<sphere>(point3(1.0, 0.0, -1.0), 0.5, material_right));
-
     auto ground_material = std::make_shared<lambertian>(color(0.5, 0.5, 0.5));
     world.add(std::make_unique<sphere>(point3(0, -1000, 0), 1000, ground_material));
 
@@ -31,8 +20,8 @@ int main()
     {
         for (int b = -11; b < 11; b++)
         {
-            auto choose_mat = random_double();
-            point3 center(a + 0.9 * random_double(), 0.2, b + 0.9 * random_double());
+            auto choose_mat = random_real();
+            point3 center(a + 0.9f * random_real(), 0.2f, b + 0.9f * random_real());
 
             if ((center - point3(4, 0.2, 0)).length() > 0.9)
             {
@@ -49,7 +38,7 @@ int main()
                 {
                     // metal
                     auto albedo = color::random(0.5, 1);
-                    auto fuzz = random_double(0, 0.5);
+                    auto fuzz = random_real(0, 0.5);
                     sphere_material = std::make_shared<metal>(albedo, fuzz);
                     world.add(std::make_unique<sphere>(center, 0.2, sphere_material));
                 }
@@ -88,9 +77,12 @@ int main()
     cam.defocus_angle = 0.6;
     cam.focus_dist = 10.0;
 
+    // Build BVH for the world
+    auto world_bvh = std::make_shared<bvh_node>(std::move(world));
+
     // Rendering
     auto start_time = std::chrono::high_resolution_clock::now();
-    cam.render(world);
+    cam.render(*world_bvh);
     auto end_time = std::chrono::high_resolution_clock::now();
 
     // Report render time
