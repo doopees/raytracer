@@ -125,5 +125,5 @@ int main() {
 
 ## References
 
-* “Ray Tracing in One Weekend.” [raytracing.github.io/books/RayTracingInOneWeekend.html](https://raytracing.github.io/books/RayTracingInOneWeekend.html)
+“Ray Tracing in One Weekend.” [raytracing.github.io/books/RayTracingInOneWeekend.html](https://raytracing.github.io/books/RayTracingInOneWeekend.html)
 (accessed 01. 22, 2026)
