@@ -107,6 +107,7 @@ int main() {
 
 ### [cornell_box.h](scenes/cornell_box.h)
 ![Cornell Box](images/cornell_box.png)
+*Classic test for indirect lighting and color bleeding.*
 
 ### [bokeh.h](scenes/bokeh.h)
 ![Bokeh](images/bokeh.png)
