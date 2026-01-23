@@ -105,23 +105,23 @@ int main() {
 
 ## Showcase
 
+[cornell_box.h](scenes/cornell_box.h)
 ![Cornell Box](images/cornell_box.png)
-[cornell_box.h](scenes\cornell_box.h)
 
+[bokeh.h](scenes/bokeh.h)
 ![Bokeh](images/bokeh.png)
-[bokeh.h](scenes\bokeh.h)
 
 ![DNA](images/dna.png)
 [dna.h](scenes/dna.h)
 
-![Light](images/light.png)
 [light.h](scenes/light.h)
+![Light](images/light.png)
 
-![Wave](images/wave.png)
 [wave.h](scenes/wave.h)
+![Wave](images/wave.png)
 
-![Snowflake](images/snowflake.png)
 [snowflake.h](scenes/snowflake.h)
+![Snowflake](images/snowflake.png)
 
 ## References
 
