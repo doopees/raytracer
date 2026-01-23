@@ -14,6 +14,11 @@ public:
         const hit_record &rec,
         color &attenuation,
         ray &scattered) const = 0;
+
+    [[nodiscard]] virtual color emitted() const
+    {
+        return color(0, 0, 0);
+    }
 };
 
 class lambertian : public material
@@ -99,4 +104,28 @@ private:
         real x = 1.0f - cosine;
         return r0 + (1.0f - r0) * (x * x * x * x * x);
     }
+};
+
+class diffuse_light : public material
+{
+public:
+    diffuse_light(color c) : emit(c) {}
+
+    // Light doesn't reflect light, it just sits there being bright
+    virtual bool scatter(
+        [[maybe_unused]] const ray &r_in,
+        [[maybe_unused]] const hit_record &rec,
+        [[maybe_unused]] color &attenuation,
+        [[maybe_unused]] ray &scattered) const override
+    {
+        return false;
+    }
+
+    virtual color emitted() const override
+    {
+        return emit;
+    }
+
+private:
+    color emit;
 };

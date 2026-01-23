@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <print>
 #include <filesystem>
+#include <fstream>
 
 class camera
 {
@@ -32,70 +33,28 @@ public:
     void render(const hittable_list &world, std::string_view filename = "render.png")
     {
         initialize();
-
-        // Build the BVH for the world
         auto world_bvh = std::make_shared<bvh_node>(world);
-
-        // Allocate pixel buffer
         std::vector<Pixel> pixels(image_width * image_height);
 
-        // Create 16x16 pixel tiles
+        // Generate tiles for parallel rendering
         const int tile_size = 16;
-        struct Tile
-        {
-            int x_start, y_start, width, height;
-        };
+        auto tiles = generate_tiles(tile_size);
 
-        std::vector<Tile> tiles;
-        for (int y = 0; y < image_height; y += tile_size)
-        {
-            for (int x = 0; x < image_width; x += tile_size)
-            {
-                tiles.push_back({x, y,
-                                 std::min(tile_size, image_width - x),
-                                 std::min(tile_size, image_height - y)});
-            }
-        }
-
-        // Start timing the render
+        std::atomic<uint64_t> total_rays{0};
         auto start_time = std::chrono::high_resolution_clock::now();
 
-        // Parallel execution over tiles
-        std::for_each(
-            std::execution::par, tiles.begin(), tiles.end(),
-            [this, &world_bvh, &pixels](const Tile &tile)
-            {
-                for (int j = tile.y_start; j < tile.y_start + tile.height; ++j)
-                {
-                    for (int i = tile.x_start; i < tile.x_start + tile.width; ++i)
-                    {
-                        color pixel_color(0.0f, 0.0f, 0.0f);
-                        for (int s = 0; s < samples_per_pixel; ++s)
-                        {
-                            ray r = get_ray(i, j);
-                            pixel_color += ray_color(r, max_depth, *world_bvh);
-                        }
-                        pixels[j * image_width + i] = to_pixel(pixel_color * pixel_samples_scale);
-                    }
-                }
-            });
+        // Core render loop
+        std::for_each(std::execution::par, tiles.begin(), tiles.end(),
+                      [this, &world_bvh, &pixels, &total_rays](const Tile &tile)
+                      {
+                          total_rays += render_tile(tile, *world_bvh, pixels);
+                      });
 
-        // End timing the render and report
         auto end_time = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<float> duration = end_time - start_time;
-        std::println(stderr, "Total render time: {:.2f}s", duration.count());
 
-        // Ensure the output directory exists
-        std::filesystem::path dir("images");
-        if (!std::filesystem::exists(dir))
-            std::filesystem::create_directory(dir);
-
-        std::filesystem::path full_path = dir / filename;
-
-        // Save the image as a PNG file
-        static_assert(sizeof(Pixel) == 3, "Pixel struct must be exactly 3 bytes for PNG export.");
-        stbi_write_png(full_path.string().c_str(), image_width, image_height, 3,
-                       pixels.data(), image_width * sizeof(Pixel));
+        // Save the image, then report and log results
+        auto full_path = save_image(pixels, filename);
+        report_results(full_path, start_time, end_time, total_rays.load());
     }
 
 private:
@@ -108,6 +67,11 @@ private:
     vec3 u, v, w;             // Camera frame basis vectors
     vec3 defocus_disk_u;      // Defocus disk horizontal radius
     vec3 defocus_disk_v;      // Defocus disk vertical radius
+
+    struct Tile
+    {
+        int x_start, y_start, width, height;
+    };
 
     void initialize()
     {
@@ -151,6 +115,90 @@ private:
         defocus_disk_v = v * defocus_radius;
     }
 
+    std::vector<Tile> generate_tiles(const int tile_size) const
+    {
+        // Generate tiles for parallel rendering
+        std::vector<Tile> tiles;
+        for (int y = 0; y < image_height; y += tile_size)
+        {
+            for (int x = 0; x < image_width; x += tile_size)
+            {
+                tiles.push_back({x, y,
+                                 std::min(tile_size, image_width - x),
+                                 std::min(tile_size, image_height - y)});
+            }
+        }
+        return tiles;
+    }
+
+    uint64_t render_tile(const Tile &tile, const hittable &world, std::vector<Pixel> &pixels) const
+    {
+        // Render a single tile and return the number of rays traced
+        uint64_t rays_traced = 0;
+        for (int j = tile.y_start; j < tile.y_start + tile.height; ++j)
+        {
+            for (int i = tile.x_start; i < tile.x_start + tile.width; ++i)
+            {
+                color pixel_color(0, 0, 0);
+                for (int s = 0; s < samples_per_pixel; ++s)
+                {
+                    pixel_color += ray_color(get_ray(i, j), max_depth, world);
+                    rays_traced++;
+                }
+                pixels[j * image_width + i] = to_pixel(pixel_color * pixel_samples_scale);
+            }
+        }
+        return rays_traced;
+    }
+
+    std::filesystem::path save_image(const std::vector<Pixel> &pixels, std::string_view filename) const
+    {
+        // Ensure images directory exists
+        std::filesystem::path dir("images");
+        if (!std::filesystem::exists(dir))
+            std::filesystem::create_directory(dir);
+
+        // Save image using stb_image_write
+        auto full_path = dir / filename;
+        stbi_write_png(full_path.string().c_str(), image_width, image_height, 3,
+                       pixels.data(), image_width * 3);
+        return full_path;
+    }
+
+    void report_results(const std::filesystem::path &path,
+                        auto start, auto end, uint64_t total_rays) const
+    {
+        // Calculate elapsed time and rays per second
+        std::chrono::duration<float> elapsed = end - start;
+        double mrays_s = (total_rays / elapsed.count()) / 1'000'000.0;
+
+        // Print results to console
+        std::println(stderr, "Done: {} | {:.2f}s | {:.2f} MRays/s",
+                     path.string(), elapsed.count(), mrays_s);
+
+        // Log performance data to CSV
+        log_performance(path, elapsed.count(), total_rays, mrays_s);
+    }
+
+    void log_performance(const std::filesystem::path &path, float elapsed, uint64_t rays, double mrays_s) const
+    {
+        std::ofstream log("perf_log.csv", std::ios::app);
+
+        // Check if file is empty
+        if (std::filesystem::exists("perf_log.csv") && std::filesystem::file_size("perf_log.csv") == 0)
+        {
+            log << "Timestamp,File,Seconds,TotalRays,MRays_s\n";
+        }
+
+        // Write performance data to log
+        auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        log << std::put_time(std::localtime(&now), "%Y-%m-%d %H:%M:%S") << ","
+            << path.string() << ","
+            << elapsed << ","
+            << rays << ","
+            << mrays_s << "\n";
+    }
+
     [[nodiscard]] ray get_ray(int i, int j) const
     {
         // Construct a camera ray originating from the defocus disk and directed at a randomly
@@ -188,9 +236,12 @@ private:
         {
             ray scattered;
             color attenuation;
+            color color_from_emission = rec.mat->emitted();
+
             if (rec.mat->scatter(r, rec, attenuation, scattered))
-                return attenuation * ray_color(scattered, depth - 1, world);
-            return color(0.0f, 0.0f, 0.0f);
+                return color_from_emission + (attenuation * ray_color(scattered, depth - 1, world));
+            else
+                return color_from_emission;
         }
 
         // Background gradient (sky)
